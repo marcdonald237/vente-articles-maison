@@ -1,9 +1,9 @@
 {
   "rules": {
-    ".read": true,
     "claims": {
+      ".read": "auth != null && !root.child('blocked').child(auth.uid).exists()",
       "$uid": {
-        ".write": "(auth != null && auth.token.email === 'vendeur@vente-maison.app') || (!$uid.matches(/^m_/) && newData.child('uid').val() === $uid)",
+        ".write": "auth != null && (auth.token.email === 'vendeur@vente-maison.app' || (!$uid.matches(/^m_/) && auth.uid === $uid && !root.child('blocked').child(auth.uid).exists()))",
         ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 30",
         "uid": { ".validate": "newData.isString()" },
         "name": { ".validate": "newData.isString()" },
@@ -13,7 +13,40 @@
       }
     },
     "meta": {
+      ".read": "auth != null && !root.child('blocked').child(auth.uid).exists()",
       "paid": { ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'" }
+    },
+    "items": {
+      ".read": "auth != null && !root.child('blocked').child(auth.uid).exists()",
+      "$id": { ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'" }
+    },
+    "photos": {
+      "$k": {
+        ".read": "auth != null && !root.child('blocked').child(auth.uid).exists()",
+        ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'",
+        ".validate": "newData.isString() && newData.val().length < 400000"
+      }
+    },
+    "visitors": {
+      ".read": "auth != null && auth.token.email === 'vendeur@vente-maison.app'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.token.email === 'vendeur@vente-maison.app' || (auth.uid === $uid && !root.child('blocked').child(auth.uid).exists()))",
+        ".validate": "newData.child('last').isNumber()",
+        "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
+        "first": { ".validate": "newData.isNumber()" },
+        "last": { ".validate": "newData.isNumber()" },
+        "n": { ".validate": "newData.isNumber()" },
+        "ua": { ".validate": "newData.isString() && newData.val().length <= 80" },
+        "$other": { ".validate": false }
+      }
+    },
+    "blocked": {
+      ".read": "auth != null && auth.token.email === 'vendeur@vente-maison.app'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'"
+      }
     },
     "$other": { ".validate": false }
   }

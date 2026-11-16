@@ -229,6 +229,30 @@ input.t:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px rgba(255
 .muted-badge{font-size:11px;font-weight:700;color:var(--muted);background:var(--sand);padding:2px 7px;border-radius:99px;white-space:nowrap}
 footer{padding:28px 0 8px;color:var(--muted);font-size:13px}
 footer p+p{margin-top:6px}
+select.t,textarea.t{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;background:#fff;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+select.t{height:48px}
+textarea.t{padding:12px 14px;min-height:96px;line-height:1.4;resize:vertical}
+select.t:focus,textarea.t:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,121,0,.2)}
+.edphotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.edp{position:relative;border-radius:10px;overflow:hidden;background:var(--bg);aspect-ratio:1}
+.edp img{width:100%;height:100%;object-fit:cover;display:block}
+.edpb{position:absolute;left:0;right:0;bottom:0;display:flex;gap:4px;padding:4px;background:linear-gradient(transparent,rgba(0,0,0,.8))}
+.edpb button{flex:1;font-size:11px;font-weight:700;color:#fff;padding:5px 2px;border-radius:6px;background:rgba(255,255,255,.2)}
+.edp .first{position:absolute;top:4px;left:4px;background:var(--accent);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px}
+.btn.danger{color:#b00020;border-color:#f3c0c7}
+.vlist{padding:18px 0;display:grid;gap:10px}
+.vrow{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;border-left:3px solid var(--accent)}
+.vrow.blk{border-left-color:#b00020}
+.vrow .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;flex:none}
+.vinfo{flex:1;min-width:0;display:grid;gap:2px}
+.vinfo small{color:var(--muted);font-size:12.5px}
+.vhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.vhead .on{color:#1a7f37;font-weight:700;font-size:12px}
+.vhead .bk{color:#b00020;font-weight:700;font-size:12px}
+.mini.danger{color:#b00020;border-color:#f3c0c7}
+#blockedOv{position:fixed;inset:0;z-index:40;background:#000;color:#fff;display:grid;place-items:center;text-align:center;padding:30px}
+#blockedOv h2{color:var(--accent);font-size:26px;margin-bottom:8px}
+@media(max-width:480px){.tab{padding:9px 9px;font-size:14px}.tabs{gap:0}}
 .hidden{display:none!important}
 </style>
 </head>
@@ -257,6 +281,7 @@ footer p+p{margin-top:6px}
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="catalogue" aria-selected="true">Catalogue</button>
       <button class="tab" role="tab" data-tab="people" aria-selected="false">Qui a choisi quoi<span class="count hidden" id="peopleCount">0</span></button>
+      <button class="tab hidden" id="visTab" role="tab" data-tab="visitors" aria-selected="false">Visiteurs<span class="count hidden" id="visCount">0</span></button>
     </div>
     <div class="tools" id="tools">
       <label class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Rechercher un article…" autocomplete="off" aria-label="Rechercher un article"></label>
@@ -267,7 +292,7 @@ footer p+p{margin-top:6px}
           <button data-st="free" aria-pressed="false">Disponibles</button>
           <button data-st="sold" aria-pressed="false">Vendus</button>
         </div>
-        <div class="row" style="gap:8px"><button class="seller-toggle hidden" id="addPersonBtn" data-act="addperson">＋ Ajouter une personne</button><button class="seller-toggle hidden" id="sellerBtn" aria-pressed="false">Mode vendeur</button></div>
+        <div class="row" style="gap:8px"><button class="seller-toggle hidden" id="newItemBtn" data-act="newitem">＋ Nouvel article</button><button class="seller-toggle hidden" id="addPersonBtn" data-act="addperson">＋ Ajouter une personne</button><button class="seller-toggle hidden" id="sellerBtn" aria-pressed="false">Mode vendeur</button></div>
       </div>
     </div>
   </div>
@@ -276,10 +301,12 @@ footer p+p{margin-top:6px}
 <main class="wrap">
   <section id="catalogue"><div class="grid" id="grid"></div></section>
   <section id="people" class="hidden"><div class="addbar hidden" id="addbar"><button class="seller-toggle" data-act="addperson">＋ Ajouter une personne</button></div><div class="people" id="peopleList"></div></section>
+  <section id="visitors" class="hidden"><div class="vlist" id="visList"></div></section>
   <footer>
     <p>Prix en FCFA. Plusieurs personnes peuvent choisir le même article ; il devient indisponible dès que la première personne a payé.</p>
     <p>Seuls les articles listés sont à vendre : la décoration, les chaussures et les autres objets visibles en arrière-plan des photos ne sont pas inclus.</p>
     <p>Une question ? <a href="https://wa.me/237699945970" target="_blank" rel="noopener">Écris au vendeur sur WhatsApp</a>.</p>
+    <p class="sub" id="privNote" hidden style="font-size:12.5px">Quand tu ouvres le site, le vendeur peut voir ton prénom (si tu l’indiques) et le type de ton appareil.</p>
     <p id="liveNote"></p>
     <p><a href="#" id="adminLink" class="hidden" data-act="adminlogin">Espace vendeur</a></p>
   </footer>
@@ -301,96 +328,157 @@ footer p+p{margin-top:6px}
   </form>
 </div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="blockedOv" class="hidden"><div><h2>Accès suspendu</h2><p>Ton accès au site a été suspendu par le vendeur.</p><p style="margin-top:16px"><a class="btn" style="display:inline-block;padding:0 24px;line-height:48px" href="https://wa.me/237699945970" target="_blank" rel="noopener">Contacter le vendeur</a></p><p style="margin-top:26px"><a href="#" data-act="adminlogin" style="font-size:12px;color:#888">Espace vendeur</a></p></div></div>
 
 <script>
 /* ───────── Base partagée (Firebase Realtime Database, via REST) ─────────
-   Renseigne dbUrl et apiKey ci-dessous pour activer les choix partagés hors de Claude. */
-window.VM_FB=window.VM_FB||{dbUrl:'https://vente-maison-2-default-rtdb.firebaseio.com',apiKey:'AIzaSyB-gTgeHjF8YtOYTPLnJ8re_KrcEu_Mics',adminEmail:'vendeur@vente-maison.app'};
+   dbUrl / apiKey : projet Firebase. notifyKey : clé Web3Forms (alertes e-mail, optionnelle). */
+window.VM_FB=window.VM_FB||{dbUrl:'https://vente-maison-2-default-rtdb.firebaseio.com',apiKey:'AIzaSyB-gTgeHjF8YtOYTPLnJ8re_KrcEu_Mics',adminEmail:'vendeur@vente-maison.app',notifyKey:''};
 (function(){
 const FB=window.VM_FB;
 if(typeof claude!=='undefined'||!FB.dbUrl||!FB.apiKey)return;
 window.VM_isShim=true;
 const base=FB.dbUrl.replace(/\/+$/,'');
+const KEY=encodeURIComponent(FB.apiKey);
+const AUTH=FB.authUrl||'https://identitytoolkit.googleapis.com',TOKU=FB.tokenUrl||'https://securetoken.googleapis.com';
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
-let uid=ls.get('vm_uid');
-if(!uid||uid.length<12){
-  const r=new Uint8Array(14);
-  try{crypto.getRandomValues(r)}catch(e){for(let i=0;i<r.length;i++)r[i]=Math.floor(Math.random()*256)}
-  uid='u'+Array.from(r,b=>(b%36).toString(36)).join('');ls.set('vm_uid',uid);
+/* Deux identités : visiteur (anonyme, vérifiée par Firebase) et vendeur (e-mail + mot de passe) */
+const ids={anon:{tok:null,exp:0,rt:ls.get('vm_art'),uid:ls.get('vm_auid')},adm:{tok:null,exp:0,rt:ls.get('vm_rt'),uid:null}};
+const RTK={anon:'vm_art',adm:'vm_rt'};
+function setId(k,tok,rt,exp,uid){
+  const I=ids[k];I.tok=tok;I.exp=Date.now()+Math.max(60,exp-120)*1000;I.rt=rt;if(uid)I.uid=uid;
+  ls.set(RTK[k],rt);if(k==='anon'&&uid)ls.set('vm_auid',uid);
 }
-/* Authentification vendeur (e-mail technique + mot de passe) */
-let token=null,tokenExp=0,refresh=ls.get('vm_rt');
-function setTok(t,rt,exp){token=t;tokenExp=Date.now()+Math.max(60,exp-120)*1000;refresh=rt;ls.set('vm_rt',rt)}
-async function signIn(pw){
+async function post(url,body,form){
+  return fetch(url,{method:'POST',headers:{'Content-Type':form?'application/x-www-form-urlencoded':'application/json'},body});
+}
+async function anonSignUp(){
   try{
-    const r=await fetch((FB.authUrl||'https://identitytoolkit.googleapis.com')+'/v1/accounts:signInWithPassword?key='+encodeURIComponent(FB.apiKey),
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:FB.adminEmail,password:pw,returnSecureToken:true})});
+    const r=await post(AUTH+'/v1/accounts:signUp?key='+KEY,JSON.stringify({returnSecureToken:true}));
     if(!r.ok)return false;
-    const j=await r.json();setTok(j.idToken,j.refreshToken,+j.expiresIn||3600);return true;
+    const j=await r.json();setId('anon',j.idToken,j.refreshToken,+j.expiresIn||3600,j.localId);return true;
   }catch(e){return false}
 }
-async function getTok(){
-  if(!refresh)return null;
-  if(token&&Date.now()<tokenExp)return token;
+async function refreshId(k){
+  const I=ids[k];
+  if(!I.rt)return k==='anon'?anonSignUp():false;
   try{
-    const r=await fetch((FB.tokenUrl||'https://securetoken.googleapis.com')+'/v1/token?key='+encodeURIComponent(FB.apiKey),
-      {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(refresh)});
-    if(r.status>=400&&r.status<500){refresh=null;token=null;ls.del('vm_rt');return null}
-    if(!r.ok)return token;
-    const j=await r.json();setTok(j.id_token,j.refresh_token,+j.expires_in||3600);return token;
-  }catch(e){return token}
+    const r=await post(TOKU+'/v1/token?key='+KEY,'grant_type=refresh_token&refresh_token='+encodeURIComponent(I.rt),true);
+    if(r.status>=400&&r.status<500){I.rt=null;I.tok=null;ls.del(RTK[k]);if(k==='anon'){ls.del('vm_auid');I.uid=null;return anonSignUp()}return false}
+    if(!r.ok)return false;
+    const j=await r.json();setId(k,j.id_token,j.refresh_token,+j.expires_in||3600,j.user_id);return true;
+  }catch(e){return false}
+}
+async function tokOf(k){
+  const I=ids[k];
+  if(I.tok&&Date.now()<I.exp)return I.tok;
+  if(k==='adm'&&!I.rt)return null;
+  await refreshId(k);
+  return I.tok;
+}
+async function anyTok(){
+  if(ids.adm.rt){const t=await tokOf('adm');if(t)return t}
+  return tokOf('anon');
+}
+async function signIn(pw){
+  try{
+    const r=await post(AUTH+'/v1/accounts:signInWithPassword?key='+KEY,JSON.stringify({email:FB.adminEmail,password:pw,returnSecureToken:true}));
+    if(!r.ok)return false;
+    const j=await r.json();setId('adm',j.idToken,j.refreshToken,+j.expiresIn||3600,j.localId);
+    setTimeout(poll,0);return true;
+  }catch(e){return false}
 }
 window.VM_adminLogin=signIn;
 /* Données + synchronisation par interrogation régulière */
-const cache={claims:{},paid:null};
-const subs=[];let pending=0,timer=null;
-const snapC=()=>({docs:Object.entries(cache.claims).map(([id,v])=>({id,data:()=>v})),metadata:{fromCache:false}});
-const snapP=()=>({exists:!!cache.paid,data:()=>cache.paid,metadata:{fromCache:false}});
-function emit(){subs.forEach(s=>s.cb(s.kind==='c'?snapC():snapP()))}
+const url=(p,t)=>base+'/'+p+'.json'+(t?'?auth='+encodeURIComponent(t):'');
+const cache={claims:{},paid:null,items:{},visitors:{},blocked:{},me:null};
+const subs=[];let pending=0,timer=null,filled=false;
+const snapOf=k=>k==='c'?{docs:Object.entries(cache.claims).map(([id,v])=>({id,data:()=>v})),metadata:{fromCache:false}}
+  :k==='p'?{exists:!!cache.paid,data:()=>cache.paid,metadata:{fromCache:false}}
+  :k==='items'?cache.items:k==='visitors'?cache.visitors:k==='blocked'?cache.blocked:cache.me;
+function emit(kinds){subs.forEach(s=>{if(!kinds||kinds.includes(s.kind))s.cb(snapOf(s.kind))})}
+async function getJson(p){
+  const t=await anyTok();
+  const r=await fetch(url(p,t),{cache:'no-store'});
+  if(r.status===401||r.status===403){const e=new Error('denied');e.code='not_granted';throw e}
+  if(!r.ok)throw new Error('http '+r.status);
+  return r.json();
+}
 async function poll(){
   if(pending||!subs.length)return;
   try{
-    const r=await fetch(base+'/.json',{cache:'no-store'});
-    if(!r.ok)throw new Error('http '+r.status);
-    const j=(await r.json())||{};
+    const t=await anyTok();
+    const adm=!!(t&&t===ids.adm.tok);
+    const uid=ids.anon.uid;
+    const get=async p=>{
+      const r=await fetch(url(p,t),{cache:'no-store'});
+      if(r.status===401||r.status===403)return{denied:true};
+      if(!r.ok)throw new Error('http '+r.status);
+      return{v:await r.json()};
+    };
+    const reqs=[get('claims'),get('meta'),get('items'),uid?get('blocked/'+uid):Promise.resolve({v:null})];
+    if(adm)reqs.push(get('visitors'),get('blocked'));
+    const [c,m,it,me,vs,bl]=await Promise.all(reqs);
     if(pending)return;
-    cache.claims=j.claims||{};cache.paid=(j.meta&&j.meta.paid)||null;
-    emit();
+    cache.me=(me&&me.v)||null;
+    if(c.denied||m.denied||it.denied){
+      if(!cache.me)throw new Error('denied');
+      cache.claims={};cache.paid=null;cache.items={};
+    }else{
+      cache.claims=c.v||{};cache.paid=(m.v&&m.v.paid)||null;cache.items=it.v||{};
+    }
+    if(adm){cache.visitors=(vs&&vs.v)||{};cache.blocked=(bl&&bl.v)||{}}
+    filled=true;emit();
   }catch(e){subs.forEach(s=>s.err&&s.err(e))}
 }
 function start(){
   if(timer)return;
-  timer=setInterval(()=>{if(!document.hidden)poll()},3500);
+  timer=setInterval(()=>{if(!document.hidden)poll()},5000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
   poll();
 }
 function applyLocal(path,obj){
-  if(path==='meta/paid')cache.paid=(obj&&obj.ids&&Object.keys(obj.ids).length)?obj:null;
-  else if(path.startsWith('claims/')){
-    const o={...obj};if(o.items&&!Object.keys(o.items).length)delete o.items;
-    cache.claims={...cache.claims,[path.slice(7)]:o};
-  }
-  emit();
+  const p=path.split('/');
+  const setIn=(name,id,val)=>{const c={...cache[name]};if(val===null||val===undefined)delete c[id];else c[id]=val;cache[name]=c};
+  if(p[0]==='claims'&&p[1]){
+    let o=obj&&{...obj};if(o&&o.items&&!Object.keys(o.items).length)delete o.items;
+    setIn('claims',p[1],o);emit(['c']);
+  }else if(path==='meta/paid'){
+    cache.paid=(obj&&obj.ids&&Object.keys(obj.ids).length)?obj:null;emit(['p']);
+  }else if(p[0]==='items'&&p[1]){setIn('items',p[1],obj);emit(['items'])}
+  else if(p[0]==='blocked'&&p[1]){setIn('blocked',p[1],obj);emit(['blocked'])}
+  else if(p[0]==='visitors'&&p[1]){setIn('visitors',p[1],obj);emit(['visitors'])}
 }
 async function put(path,obj){
   pending++;
   try{
     for(let a=0;a<2;a++){
-      const t=await getTok();
-      const r=await fetch(base+'/'+path+'.json'+(t?'?auth='+encodeURIComponent(t):''),
-        {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      const t=await anyTok();
+      const r=await fetch(url(path,t),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       if(r.ok){applyLocal(path,obj);return}
-      if((r.status===401||r.status===403)&&t&&a===0){token=null;tokenExp=0;continue}
+      if((r.status===401||r.status===403)&&t&&a===0){
+        const k=t===ids.adm.tok?'adm':'anon';ids[k].tok=null;ids[k].exp=0;continue;
+      }
       const e=new Error('http '+r.status);e.code=(r.status===401||r.status===403)?'not_granted':'unavailable';throw e;
     }
   }finally{pending--;setTimeout(poll,0)}
 }
-function sub(kind,cb,err){subs.push({kind,cb,err});start()}
+function sub(kind,cb,err){
+  subs.push({kind,cb,err});start();
+  if(filled)setTimeout(()=>cb(snapOf(kind)),0);
+}
 const db={
   doc:p=>({set:o=>put(p,o),onSnapshot:(cb,err)=>sub('p',cb,err)}),
-  collection:()=>({onSnapshot:(cb,err)=>sub('c',cb,err)})
+  collection:()=>({onSnapshot:(cb,err)=>sub('c',cb,err)}),
+  watch:sub,
+  getRaw:getJson,
+  photo:{get:k=>getJson('photos/'+k),put:(k,d)=>put('photos/'+k,d)}
 };
-const user={id:async()=>uid,canEdit:async()=>!!(await getTok()),can:async()=>true};
+const user={
+  id:async()=>{await tokOf('anon');return ids.anon.uid||null},
+  canEdit:async()=>!!(await tokOf('adm')),
+  can:async()=>true
+};
 window.claude={use:async n=>n==='db'?db:n==='user'?user:null};
 })();
 </script>
@@ -404,7 +492,7 @@ const CATS=[
   {id:'bureau',label:'Bureau & multimédia'},
   {id:'electro',label:'Électroménager'}
 ];
-const ITEMS=[
+const BASE_ITEMS=[
   {id:'canape',name:'Canapé d’angle',price:350000,cat:'salon',photos:['canape-1','canape-2'],note:'Canapé d’angle en tissu beige. Coussins visibles sur les photos : à confirmer avec le vendeur.'},
   {id:'table-chaise',name:'Table + chaise',price:20000,cat:'cuisine',photos:['table-1','table-2'],note:'Table et chaise en bois.'},
   {id:'ecran-clavier',name:'Écran + clavier',price:20000,cat:'bureau',photos:['ecran-1'],note:'Écran HP avec clavier.'},
@@ -439,8 +527,47 @@ const ITEMS=[
   {id:'verres-shot',name:'6 verres à shot',price:3000,cat:'cuisine',photos:['verres-shot']}
 ];
 const SELLER_WA='237699945970';
-const BY=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
-const TOTAL=ITEMS.reduce((s,i)=>s+i.price,0);
+const ITEMS=[],BY={};
+function mergeOv(i,o){
+  if(typeof o.name==='string'&&o.name.trim())i.name=o.name.slice(0,60);
+  if(typeof o.price==='number'&&isFinite(o.price)&&o.price>=0)i.price=Math.round(o.price);
+  if(typeof o.cat==='string'&&CATS.some(c=>c.id===o.cat))i.cat=o.cat;
+  for(const f of ['sub','note','badge'])if(typeof o[f]==='string'){if(o[f])i[f]=o[f];else delete i[f]}
+  if(typeof o.pl==='string')i.photos=o.pl.split(',').filter(x=>/^(db:)?[A-Za-z0-9_-]{1,40}$/.test(x));
+}
+function applyItems(ov){
+  ov=ov&&typeof ov==='object'?ov:{};
+  const out=[];
+  for(const b of BASE_ITEMS){
+    const o=ov[b.id];
+    if(o&&o.del)continue;
+    const i={...b};
+    if(o&&typeof o==='object')mergeOv(i,o);
+    out.push(i);
+  }
+  const extra=Object.entries(ov).filter(([id,o])=>!BASE_ITEMS.some(b=>b.id===id)&&o&&typeof o==='object'&&!o.del&&typeof o.name==='string'&&o.name&&CATS.some(c=>c.id===o.cat))
+    .sort((a,b)=>(a[1].ord||0)-(b[1].ord||0));
+  for(const [id,o] of extra){const i={id,name:'',price:0,cat:'salon',photos:[]};mergeOv(i,o);out.push(i)}
+  ITEMS.length=0;ITEMS.push(...out);
+  for(const k of Object.keys(BY))delete BY[k];
+  ITEMS.forEach(i=>{BY[i.id]=i});
+}
+try{applyItems(JSON.parse(store.get('vm_items')||'null'))}catch(e){applyItems(null)}
+const BLANK='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const dbPhotos=new Map(),photoLoading=new Set();
+function imgTag(p,alt,attrs){
+  if(p.startsWith('db:'))return `<img data-dbref="${p.slice(3)}" src="${BLANK}" alt="${esc(alt)}" ${attrs}>`;
+  return `<img src="img/${p}.jpg" alt="${esc(alt)}" ${attrs}>`;
+}
+function hydratePhotos(){
+  document.querySelectorAll('img[data-dbref]').forEach(img=>{
+    const k=img.dataset.dbref,v=dbPhotos.get(k);
+    if(v){if(img.getAttribute('src')!==v)img.src=v;return}
+    if(photoLoading.has(k)||!(S.db&&S.db.photo))return;
+    photoLoading.add(k);
+    S.db.photo.get(k).then(d=>{if(typeof d==='string'&&d.startsWith('data:image/')){dbPhotos.set(k,d);hydratePhotos()}else photoLoading.delete(k)}).catch(()=>photoLoading.delete(k));
+  });
+}
 
 const ICONS={
   salon:'<path d="M8 28v-6a6 6 0 0 1 6-6h20a6 6 0 0 1 6 6v6M6 28h36v8H6zM12 36v4M36 36v4"/>',
@@ -470,7 +597,8 @@ const S={
   name:store.get('vm_name')||'',
   docs:new Map(),raw:new Map(),ch:{},paid:{},
   local:new Set((()=>{try{return JSON.parse(store.get('vm_local')||'[]').filter(i=>BY[i])}catch(e){return[]}})()),
-  live:false,liveErr:false,sheet:null
+  live:false,liveErr:false,sheet:null,
+  visitors:{},blockedMap:{},blockedMe:false,vrec:null,itemsRaw:{},confirmBlock:null,reapply:null
 };
 function recompute(){
   const ch={};
@@ -510,7 +638,7 @@ async function ensureName(){
   if(S.name)return S.name;
   const v=await ask({title:'Ton nom',hint:'Il sera visible par tous à côté des articles que tu choisis.',label:'Prénom ou nom',cta:'Continuer'});
   if(!v)return '';
-  S.name=v;store.set('vm_name',v);return v;
+  S.name=v;store.set('vm_name',v);saveVisitor();return v;
 }
 const saveLocal=()=>store.set('vm_local',JSON.stringify([...S.local]));
 async function pick(id){
@@ -520,13 +648,19 @@ async function pick(id){
     toast('Ajouté à ta sélection. Envoie-la au vendeur pour réserver.');render();return;
   }
   const name=await ensureName();if(!name)return;
+  let ok=false;
   await enqueue(async()=>{
     const cur=S.docs.get(S.uid);
     const items={...(cur?cur.items:{})};
     if(items[id])return;
     items[id]=Date.now();
     await S.db.doc('claims/'+S.uid).set({uid:S.uid,name,items});
+    ok=true;
   });
+  if(ok&&SHIM()){
+    const mine=Object.keys((S.docs.get(S.uid)||{items:{}}).items).filter(k=>BY[k]);
+    notify('article choisi',[`${name} a choisi « ${BY[id].name} » (${money(BY[id].price)}).`,`Sa sélection : ${mine.map(k=>BY[k].name).join(', ')||BY[id].name}`,`Appareil : ${deviceDesc()}`,`Heure : ${new Date().toLocaleString('fr-FR')}`]);
+  }
 }
 async function drop(id){
   if(!writable()){S.local.delete(id);saveLocal();render();return}
@@ -575,6 +709,164 @@ async function adminAdd(name,ids){
   toast(`${name} ajouté(e) avec ${ids.length} article${ids.length>1?'s':''}.`);
 }
 
+/* ───────── Suivi des visiteurs, alertes e-mail, blocage ───────── */
+const SHIM=()=>!!window.VM_isShim;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function deviceDesc(){
+  const u=navigator.userAgent||'';
+  const os=/iPhone|iPad|iPod/.test(u)?'iPhone':/Android/.test(u)?'Android':/Windows/.test(u)?'Windows':/Mac OS/.test(u)?'Mac':/Linux/.test(u)?'Linux':'Appareil';
+  const br=/Edg\//.test(u)?'Edge':/OPR\/|Opera/.test(u)?'Opera':/SamsungBrowser/.test(u)?'Samsung':/Firefox/.test(u)?'Firefox':/Chrome|CriOS/.test(u)?'Chrome':/Safari/.test(u)?'Safari':'Navigateur';
+  return os+' · '+br;
+}
+async function notify(subject,lines){
+  const F=window.VM_FB||{};
+  if(!F.notifyKey||S.canEdit)return;
+  try{await fetch(F.notifyUrl||'https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify({access_key:F.notifyKey,subject:'Vente maison : '+subject,from_name:'Vente maison',message:lines.join('\n')})})}catch(e){}
+}
+async function saveVisitor(){
+  if(!SHIM()||!S.uid||!S.db||S.canEdit||S.blockedMe||!S.vrec)return;
+  const rec={name:S.name||'',first:S.vrec.first,last:Date.now(),n:S.vrec.n,ua:deviceDesc()};
+  try{await S.db.doc('visitors/'+S.uid).set(rec)}catch(e){}
+}
+async function startTracking(){
+  if(!SHIM()||!S.uid||!S.db||S.canEdit)return;
+  let cur=null;try{cur=await S.db.getRaw('visitors/'+S.uid)}catch(e){}
+  const isNew=!cur;
+  let sess=null;try{sess=sessionStorage.getItem('vm_sess');sessionStorage.setItem('vm_sess','1')}catch(e){}
+  S.vrec={first:(cur&&cur.first)||Date.now(),n:((cur&&cur.n)||0)+(sess?0:1)};
+  await saveVisitor();
+  setInterval(()=>{if(!document.hidden)saveVisitor()},240000);
+  if(!S.name){
+    await sleep(900);
+    if(S.blockedMe)return;
+    const done=ask({title:'Bienvenue',hint:'Dis-nous ton prénom pour que le vendeur te reconnaisse. Tu peux passer.',label:'Prénom ou nom',cta:'Continuer'})
+      .then(async v=>{if(v){S.name=v;store.set('vm_name',v);await saveVisitor();render()}});
+    await Promise.race([done,sleep(40000)]);
+  }
+  if(isNew)notify('nouveau visiteur',[`${S.name||'Visiteur anonyme'} vient d’ouvrir le site.`,`Appareil : ${deviceDesc()}`,`Heure : ${new Date().toLocaleString('fr-FR')}`]);
+}
+async function setBlocked(uid,on){
+  const v=S.visitors[uid];
+  await enqueue(()=>S.db.doc('blocked/'+uid).set(on?{at:Date.now(),name:(v&&v.name)||''}:null));
+  toast(on?'Utilisateur bloqué.':'Utilisateur débloqué.');
+}
+function ago(t){
+  const m=Math.max(0,(Date.now()-t)/60000);
+  if(m<1.5)return 'à l’instant';
+  if(m<60)return `il y a ${Math.round(m)} min`;
+  const h=m/60;if(h<24)return `il y a ${Math.round(h)} h`;
+  return `il y a ${Math.round(h/24)} j`;
+}
+function renderVisitors(){
+  const adm=SHIM()&&S.canEdit&&!!S.db;
+  const map=new Map();
+  for(const [uid,v] of Object.entries(S.visitors||{}))map.set(uid,{uid,...v});
+  for(const [uid,b] of Object.entries(S.blockedMap||{}))if(!map.has(uid))map.set(uid,{uid,name:(b&&b.name)||'',last:(b&&b.at)||0,first:(b&&b.at)||0,n:0,ua:''});
+  const list=[...map.values()].sort((a,b)=>(b.last||0)-(a.last||0));
+  $('#visCount').textContent=list.length;$('#visCount').classList.toggle('hidden',!list.length);
+  if(!adm||S.tab!=='visitors')return;
+  const day=t=>new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  $('#visList').innerHTML=list.length?list.map(v=>{
+    const doc=S.docs.get(v.uid);
+    const name=v.name||(doc&&doc.name)||'';
+    const blk=!!(S.blockedMap&&S.blockedMap[v.uid]);
+    const online=!blk&&Date.now()-(v.last||0)<6*60000;
+    const nb=doc?Object.keys(doc.items).length:0;
+    const conf=S.confirmBlock===v.uid;
+    return `<div class="vrow${blk?' blk':''}"><div class="av" style="background:${colorOf(v.uid)}">${esc((name||'?').slice(0,1).toUpperCase())}</div>
+      <div class="vinfo"><div class="vhead"><b>${esc(name||'Visiteur anonyme')}</b>${online?'<span class="on">● en ligne</span>':''}${blk?'<span class="bk">Bloqué</span>':''}</div>
+      <small>${esc(v.ua||'Appareil inconnu')}</small>
+      <small>Dernière visite : ${v.last?ago(v.last):'—'} · 1re : ${v.first?day(v.first):'—'} · ${v.n||0} visite${(v.n||0)>1?'s':''} · ${nb} article${nb>1?'s':''}</small></div>
+      ${blk?`<button class="mini fill" data-act="unblock" data-uid="${esc(v.uid)}">Débloquer</button>`:`<button class="mini danger" data-act="block" data-uid="${esc(v.uid)}">${conf?'Confirmer ?':'Bloquer'}</button>`}</div>`;
+  }).join(''):'<div class="empty">Aucun visiteur enregistré pour l’instant.</div>';
+}
+setInterval(()=>{if(!document.hidden&&S.tab==='visitors')renderVisitors()},30000);
+
+/* ───────── Modifier les articles (vendeur) ───────── */
+function openEdit(id){
+  const i=id&&BY[id];
+  S.sheet={type:'edit',id:id||null,confirmDel:false,
+    draft:i?{name:i.name,price:String(i.price),cat:i.cat,sub:i.sub||'',note:i.note||'',badge:i.badge||'',photos:(i.photos||[]).slice()}
+           :{name:'',price:'',cat:CATS[0].id,sub:'',note:'',badge:'',photos:[]}};
+  $('#sheet').dataset.kind='';render();
+}
+function sheetEdit(){
+  const e=S.sheet,d=e.draft;
+  return `<button class="sclose" data-act="close" aria-label="Fermer">×</button>
+  <form class="sbody" id="editForm" style="padding-top:28px"><h2>${e.id?'Modifier l’article':'Nouvel article'}</h2>
+  <label class="f">Nom<input class="t" id="edName" data-f="name" maxlength="60" required value="${esc(d.name)}"></label>
+  <label class="f">Prix (FCFA)<input class="t" id="edPrice" data-f="price" inputmode="numeric" required value="${esc(d.price)}"></label>
+  <label class="f">Catégorie<select class="t" id="edCat" data-f="cat">${CATS.map(c=>`<option value="${c.id}" ${c.id===d.cat?'selected':''}>${esc(c.label)}</option>`).join('')}</select></label>
+  <label class="f">Précision (facultatif)<input class="t" id="edSub" data-f="sub" maxlength="80" placeholder="ex. 2 × 15 000" value="${esc(d.sub)}"></label>
+  <label class="f">Description<textarea class="t" id="edNote" data-f="note" maxlength="600" rows="4">${esc(d.note)}</textarea></label>
+  <label class="f">Étiquette (facultatif)<input class="t" id="edBadge" data-f="badge" maxlength="30" placeholder="ex. Neuf" value="${esc(d.badge)}"></label>
+  <div style="font-weight:700;font-size:14px">Photos <small class="sub" style="font-weight:400">La 1re photo est celle de la carte.</small></div>
+  <div class="edphotos" id="edPhotos"></div>
+  <label class="btn line" style="text-align:center;cursor:pointer">＋ Ajouter des photos<input type="file" id="edFile" accept="image/*" multiple hidden></label>
+  <button class="btn" type="submit">Enregistrer</button>
+  ${e.id?`<button type="button" class="btn ghost danger" id="edDel" data-act="delitem">Supprimer l’article</button>`:''}</form>`;
+}
+function renderEditPhotos(){
+  const box=$('#edPhotos');if(!box||!S.sheet||S.sheet.type!=='edit')return;
+  const ph=S.sheet.draft.photos;
+  box.innerHTML=ph.length?ph.map((p,k)=>`<div class="edp">${imgTag(p,'photo '+(k+1),'')}${k===0?'<span class="first">1re</span>':''}<div class="edpb">${k?`<button type="button" data-act="phfirst" data-i="${k}">En 1er</button>`:''}<button type="button" data-act="phdel" data-i="${k}">Retirer</button></div></div>`).join(''):'<p class="sub">Aucune photo.</p>';
+  hydratePhotos();
+}
+function loadImg(file){
+  return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{URL.revokeObjectURL(u);res(im)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u});
+}
+async function shrink(file){
+  let src;
+  try{src=await createImageBitmap(file,{imageOrientation:'from-image'})}catch(e){src=await loadImg(file)}
+  const w0=src.width,h0=src.height;
+  for(const [max,q] of [[1000,.72],[900,.62],[760,.55]]){
+    const k=Math.min(1,max/Math.max(w0,h0));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w0*k));c.height=Math.max(1,Math.round(h0*k));
+    c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+    const d=c.toDataURL('image/jpeg',q);
+    if(d.length<360000)return d;
+  }
+  throw new Error('trop lourde');
+}
+async function addPhotos(files){
+  const e=S.sheet;if(!e||e.type!=='edit'||!files.length)return;
+  let n=0;
+  for(const f of files){
+    if(!/^image\//.test(f.type)){continue}
+    try{
+      toast(`Envoi de la photo ${n+1}/${files.length}…`);
+      const data=await shrink(f);
+      const key='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      await S.db.photo.put(key,data);
+      dbPhotos.set(key,data);
+      if(S.sheet===e){e.draft.photos.push('db:'+key);renderEditPhotos()}
+      n++;
+    }catch(err){toast('Photo refusée : réessaie avec une autre image.')}
+  }
+  if(n)toast(n>1?`${n} photos ajoutées.`:'Photo ajoutée.');
+}
+async function saveEdit(){
+  const e=S.sheet;if(!e||e.type!=='edit')return;
+  const d=e.draft;
+  const name=d.name.trim(),price=Math.round(Number(String(d.price).replace(/[^\d]/g,'')));
+  if(!name||String(d.price).replace(/[^\d]/g,'')===''||!isFinite(price)){toast('Indique un nom et un prix.');return}
+  const id=e.id||('x'+Date.now().toString(36));
+  const obj={name,price,cat:d.cat,sub:d.sub.trim(),note:d.note.trim(),badge:d.badge.trim(),pl:d.photos.join(',')};
+  if(!BASE_ITEMS.some(b=>b.id===id))obj.ord=(S.itemsRaw[id]&&S.itemsRaw[id].ord)||Date.now();
+  let ok=false;
+  await enqueue(async()=>{await S.db.doc('items/'+id).set(obj);ok=true});
+  if(ok){S.sheet=null;render();toast('Article enregistré.')}
+}
+async function deleteItem(){
+  const e=S.sheet;if(!e||e.type!=='edit'||!e.id)return;
+  if(!e.confirmDel){e.confirmDel=true;const b=$('#edDel');if(b)b.textContent='Confirmer la suppression';return}
+  let ok=false;
+  await enqueue(async()=>{await S.db.doc('items/'+e.id).set({del:true});ok=true});
+  if(ok){S.sheet=null;render();toast('Article supprimé.')}
+}
+
 /* ───────── Rendering ───────── */
 function filtered(){
   const q=norm(S.q.trim());
@@ -598,7 +890,7 @@ function pillOf(s){
   return '<span class="pill">Disponible</span>';
 }
 function photoHtml(i){
-  if(i.photos&&i.photos.length)return `<img src="img/${i.photos[0]}.jpg" alt="${esc(i.name)}" loading="lazy" decoding="async">`;
+  if(i.photos&&i.photos.length)return imgTag(i.photos[0],i.name,'loading="lazy" decoding="async"');
   return `<div class="ph">${icon(i.cat)}<small>Photo à venir</small></div>`;
 }
 function cardHtml(i){
@@ -642,7 +934,7 @@ function renderGrid(reset){
   if(reset===true)seen.clear();
   const list=filtered();
   $('#grid').innerHTML=list.length?list.map(cardHtml).join(''):'<div class="empty">Aucun article ne correspond.</div>';
-  setupReveal();
+  setupReveal();hydratePhotos();
 }
 function renderChips(){
   $('#chips').innerHTML=[{id:'all',label:'Tout'},...CATS].map(c=>`<button class="chip" data-cat="${c.id}" aria-pressed="${S.cat===c.id}">${esc(c.label)}</button>`).join('');
@@ -688,7 +980,7 @@ function renderSelBar(){
 }
 function galleryHtml(i){
   if(!i.photos||!i.photos.length)return `<div class="gallery"><div class="ph" style="aspect-ratio:4/3;width:100%">${icon(i.cat)}<small>Photo à venir</small></div></div>`;
-  return `<div class="gallery" id="gal">${i.photos.map(p=>`<img src="img/${p}.jpg" alt="${esc(i.name)}" decoding="async">`).join('')}</div>${i.photos.length>1?`<div class="dots" id="dots">${i.photos.map((_,k)=>`<i class="${k?'':'on'}"></i>`).join('')}</div>`:''}`;
+  return `<div class="gallery" id="gal">${i.photos.map(p=>imgTag(p,i.name,'decoding="async"')).join('')}</div>${i.photos.length>1?`<div class="dots" id="dots">${i.photos.map((_,k)=>`<i class="${k?'':'on'}"></i>`).join('')}</div>`:''}`;
 }
 function sheetItem(id){
   const i=BY[id],s=stateOf(id);
@@ -713,7 +1005,8 @@ function sheetItem(id){
     seller=`<div class="sellerbox"><h3>Mode vendeur</h3>
       ${s.list.map(c=>`<div class="srow"><span>${esc(c.name)}${s.p&&s.p.by===c.docId?' <span class="ok-badge">Payé ✓</span>':''}</span><span class="acts">${!s.p?`<button class="mini fill" data-act="paid" data-id="${id}" data-doc="${esc(c.docId)}">A payé</button>`:''}<button class="mini" data-act="remove" data-id="${id}" data-doc="${esc(c.docId)}">Retirer</button></span></div>`).join('')||'<p class="sub">Personne n’a encore choisi cet article.</p>'}
       ${s.p?`<div class="srow"><span>Payé par ${esc(s.p.name)}</span><span class="acts"><button class="mini" data-act="unpaid" data-id="${id}">Annuler le paiement</button></span></div>`:''}
-      <button class="btn line" data-act="addp" data-id="${id}">＋ Ajouter une personne…</button></div>`;
+      <button class="btn line" data-act="addp" data-id="${id}">＋ Ajouter une personne…</button>
+      ${SHIM()?`<button class="btn line" data-act="edit" data-id="${id}">✎ Modifier l’article</button>`:''}</div>`;
   }
   return `<button class="sclose" data-act="close" aria-label="Fermer">×</button>
     ${galleryHtml(i)}
@@ -750,10 +1043,11 @@ function sheetAdd(){
 function renderSheet(){
   const bd=$('#backdrop'),sh=$('#sheet');
   if(!S.sheet){bd.hidden=true;sh.dataset.kind='';return}
-  if(S.sheet.type==='add'&&sh.dataset.kind==='add'&&!bd.hidden)return; /* keep typing state */
+  if((S.sheet.type==='add'||S.sheet.type==='edit')&&sh.dataset.kind===S.sheet.type&&!bd.hidden)return; /* keep typing state */
   const keep=sh.scrollTop;
-  sh.innerHTML=S.sheet.type==='item'?sheetItem(S.sheet.id):S.sheet.type==='add'?sheetAdd():sheetSel();
+  sh.innerHTML=S.sheet.type==='item'?sheetItem(S.sheet.id):S.sheet.type==='add'?sheetAdd():S.sheet.type==='edit'?sheetEdit():sheetSel();
   sh.dataset.kind=S.sheet.type;bd.hidden=false;sh.scrollTop=keep;
+  if(S.sheet.type==='edit')renderEditPhotos();else hydratePhotos();
   const g=$('#gal');
   if(g)g.addEventListener('scroll',()=>{const k=Math.round(g.scrollLeft/g.clientWidth);document.querySelectorAll('#dots i').forEach((d,n)=>d.classList.toggle('on',n===k))},{passive:true});
 }
@@ -763,6 +1057,11 @@ function render(){
   $('#sellerBtn').classList.toggle('hidden',!adm);
   $('#adminLink').classList.toggle('hidden',!(window.VM_isShim&&S.db&&!S.canEdit));
   $('#addPersonBtn').classList.toggle('hidden',!(adm&&S.seller));
+  $('#newItemBtn').classList.toggle('hidden',!(SHIM()&&adm&&S.seller));
+  $('#visTab').classList.toggle('hidden',!(SHIM()&&adm));
+  $('#privNote').hidden=!SHIM();
+  $('#blockedOv').classList.toggle('hidden',!S.blockedMe);
+  renderVisitors();
   $('#addbar').classList.toggle('hidden',!(adm&&S.seller));
   renderGrid();renderPeople();renderSelBar();renderSheet();renderSelBar();
 }
@@ -791,8 +1090,10 @@ document.addEventListener('click',async e=>{
     document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===S.tab));
     $('#catalogue').classList.toggle('hidden',S.tab!=='catalogue');
     $('#people').classList.toggle('hidden',S.tab!=='people');
+    $('#visitors').classList.toggle('hidden',S.tab!=='visitors');
     $('#tools').classList.toggle('hidden',S.tab!=='catalogue');
-    const sec=$(S.tab==='catalogue'?'#catalogue':'#people');sec.classList.remove('enter');void sec.offsetWidth;sec.classList.add('enter');
+    if(S.tab==='visitors')renderVisitors();
+    const sec=$('#'+S.tab);sec.classList.remove('enter');void sec.offsetWidth;sec.classList.add('enter');
     window.scrollTo({top:0});return}
   if(t.dataset.cat){S.cat=t.dataset.cat;renderChips();renderGrid(true);return}
   if(t.dataset.st){S.status=t.dataset.st;document.querySelectorAll('#seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.st===S.status));renderGrid(true);return}
@@ -816,10 +1117,20 @@ document.addEventListener('click',async e=>{
       if(ok){S.canEdit=true;render();toast('Mode vendeur disponible : touche « Mode vendeur » en haut.')}
       else toast('Mot de passe incorrect.');
       break}
+    case 'edit':openEdit(id);break;
+    case 'newitem':openEdit(null);break;
+    case 'delitem':await deleteItem();break;
+    case 'phdel':{const e2=S.sheet;if(e2&&e2.type==='edit'){e2.draft.photos.splice(+t.dataset.i,1);renderEditPhotos()}break}
+    case 'phfirst':{const e2=S.sheet;if(e2&&e2.type==='edit'){const [p]=e2.draft.photos.splice(+t.dataset.i,1);e2.draft.photos.unshift(p);renderEditPhotos()}break}
+    case 'block':{const u=t.dataset.uid;
+      if(S.confirmBlock!==u){S.confirmBlock=u;renderVisitors();setTimeout(()=>{if(S.confirmBlock===u){S.confirmBlock=null;renderVisitors()}},4000)}
+      else{S.confirmBlock=null;await setBlocked(u,true)}
+      break}
+    case 'unblock':await setBlocked(t.dataset.uid,false);break;
     case 'askCancel':askClose(null);break;
     case 'rename':{const v=await ask({title:'Ton nom',hint:'',label:'Prénom ou nom',cta:'Enregistrer',value:S.name});if(v){S.name=v;store.set('vm_name',v);
       if(writable()&&S.docs.get(S.uid))enqueue(async()=>{const cur=S.docs.get(S.uid);await S.db.doc('claims/'+S.uid).set({uid:S.uid,name:v,items:cur.items})});
-      render()}break}
+      saveVisitor();render()}break}
     case 'copy':{
       const m=$('#msg');
       try{await navigator.clipboard.writeText(m.value);toast('Message copié.')}
@@ -827,7 +1138,16 @@ document.addEventListener('click',async e=>{
       break}
   }
 });
+document.addEventListener('input',e=>{
+  const f=e.target&&e.target.dataset&&e.target.dataset.f;
+  if(f&&S.sheet&&S.sheet.type==='edit')S.sheet.draft[f]=e.target.value;
+});
+document.addEventListener('change',e=>{
+  if(e.target&&e.target.id==='edFile'){const fs=[...e.target.files];e.target.value='';addPhotos(fs)}
+  else if(e.target&&e.target.dataset&&e.target.dataset.f&&S.sheet&&S.sheet.type==='edit')S.sheet.draft[e.target.dataset.f]=e.target.value;
+});
 document.addEventListener('submit',async e=>{
+  if(e.target.id==='editForm'){e.preventDefault();await saveEdit();return}
   if(e.target.id!=='addForm')return;
   e.preventDefault();
   const name=$('#addName').value.trim();
@@ -939,18 +1259,28 @@ async function init(){
   render();
   const timer=setTimeout(()=>{if(!S.live){S.liveErr=true;renderNotice()}},10000);
   const onErr=()=>{clearTimeout(timer);S.liveErr=true;render()};
-  db.collection('claims').onSnapshot(snap=>{
-    readDocs(snap);recompute();
-    if(!snap.metadata.fromCache){S.live=true;S.liveErr=false;clearTimeout(timer)}
-    render();
-  },onErr);
-  db.doc('meta/paid').onSnapshot(s=>{
+  let lastSnap=null,lastPaid=null;
+  const doPaid=s=>{
     const d=s.exists?s.data():null;const out={};
     if(d&&d.ids&&typeof d.ids==='object')for(const [k,v] of Object.entries(d.ids)){
       if(BY[k]&&v&&typeof v==='object')out[k]={by:String(v.by||''),name:typeof v.name==='string'&&v.name?v.name.slice(0,30):'Quelqu’un'};
     }
-    S.paid=out;render();
-  },()=>{});
+    S.paid=out;
+  };
+  S.reapply=()=>{if(lastSnap){readDocs(lastSnap);recompute()}if(lastPaid)doPaid(lastPaid)};
+  if(db.watch){
+    db.watch('items',o=>{S.itemsRaw=o||{};store.set('vm_items',JSON.stringify(o||{}));applyItems(o);S.reapply();recompute();render()});
+    db.watch('me',m=>{const b=!!m;if(b!==S.blockedMe){S.blockedMe=b;render()}});
+    db.watch('visitors',v=>{S.visitors=v||{};renderVisitors()});
+    db.watch('blocked',b=>{S.blockedMap=b||{};renderVisitors()});
+  }
+  db.collection('claims').onSnapshot(snap=>{
+    lastSnap=snap;readDocs(snap);recompute();
+    if(!snap.metadata.fromCache){S.live=true;S.liveErr=false;clearTimeout(timer)}
+    render();
+  },onErr);
+  db.doc('meta/paid').onSnapshot(s=>{lastPaid=s;doPaid(s);render()},()=>{});
+  startTracking();
 }
 init();
 </script>
