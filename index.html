@@ -305,7 +305,7 @@ footer p+p{margin-top:6px}
 <script>
 /* ───────── Base partagée (Firebase Realtime Database, via REST) ─────────
    Renseigne dbUrl et apiKey ci-dessous pour activer les choix partagés hors de Claude. */
-window.VM_FB=window.VM_FB||{dbUrl:'',apiKey:'',adminEmail:'vendeur@vente-maison.app'};
+window.VM_FB=window.VM_FB||{dbUrl:'https://vente-maison-626c2-default-rtdb.europe-west1.firebasedatabase.app',apiKey:'AIzaSyB4yNz5rVDZl08amgzIvgqJPQHXHupfdzU',adminEmail:'vendeur@vente-maison.app'};
 (function(){
 const FB=window.VM_FB;
 if(typeof claude!=='undefined'||!FB.dbUrl||!FB.apiKey)return;
