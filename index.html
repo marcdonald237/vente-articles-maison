@@ -183,6 +183,11 @@ h1 em{font-style:normal;color:var(--accent)}
 .btn.ghost{background:var(--sand);color:#000}
 .btn.line{background:transparent;border:1.5px solid var(--line);color:#000}
 .btn[disabled]{opacity:.5;cursor:default}
+a.btn{display:block;text-align:center;text-decoration:none}
+.btn.wa{background:#000;color:#fff}
+.btn.wa:hover{background:#222}
+.btn.wa b{color:var(--accent)}
+footer a{color:var(--accent-d);font-weight:700}
 .sellerbox{border:1.5px dashed var(--accent-d);border-radius:12px;padding:12px;display:grid;gap:8px}
 .sellerbox h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-d)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -274,6 +279,7 @@ footer p+p{margin-top:6px}
   <footer>
     <p>Prix en FCFA. Plusieurs personnes peuvent choisir le même article ; il devient indisponible dès que la première personne a payé.</p>
     <p>Seuls les articles listés sont à vendre : la décoration, les chaussures et les autres objets visibles en arrière-plan des photos ne sont pas inclus.</p>
+    <p>Une question ? <a href="https://wa.me/237699945970" target="_blank" rel="noopener">Écris au vendeur sur WhatsApp</a>.</p>
     <p id="liveNote"></p>
   </footer>
 </main>
@@ -339,6 +345,7 @@ const ITEMS=[
   {id:'verres-vin',name:'Carton de verres à vin',price:6000,cat:'cuisine',photos:['verres-vin'],sub:'6 verres · 350 ml',note:'Carton de 6 verres à vin, 350 ml.'},
   {id:'verres-shot',name:'6 verres à shot',price:3000,cat:'cuisine',photos:['verres-shot']}
 ];
+const SELLER_WA='237699945970';
 const BY=Object.fromEntries(ITEMS.map(i=>[i.id,i]));
 const TOTAL=ITEMS.reduce((s,i)=>s+i.price,0);
 
@@ -629,7 +636,8 @@ function sheetSel(){
   <div class="status taken" style="justify-content:space-between"><span>Total</span><span>${money(tot)}</span></div>
   ${writable()?'<p class="sub">Tes choix sont visibles par tous dans « Qui a choisi quoi ». L’article est à la première personne qui paie : envoie ce récapitulatif au vendeur pour régler.</p>':'<p class="sub">Copie ce message et envoie-le au vendeur pour réserver tes articles.</p>'}
   <textarea class="msg" id="msg" readonly>${esc(selMessage())}</textarea>
-  <button class="btn" data-act="copy">Copier le message</button>`
+  <a class="btn wa" href="https://wa.me/${SELLER_WA}?text=${encodeURIComponent(selMessage())}" target="_blank" rel="noopener">Envoyer au vendeur sur <b>WhatsApp</b></a>
+  <button class="btn ghost" data-act="copy">Copier le message</button>`
   :'<p class="sub">Tu n’as pas encore choisi d’article disponible.</p>'}
   ${lost.length?`<p class="sub"><b>Plus disponibles :</b> ${lost.map(id=>esc(BY[id].name)).join(', ')} (déjà payés par d’autres).</p>`:''}
   <button class="btn line" data-act="rename">${S.name?`Changer mon nom (${esc(S.name)})`:'Ajouter mon nom au message'}</button></div>`;
