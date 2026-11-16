@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": true,
+    "claims": {
+      "$uid": {
+        ".write": "(auth != null && auth.token.email === 'vendeur@vente-maison.app') || (!$uid.matches(/^m_/) && newData.child('uid').val() === $uid)",
+        ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 30",
+        "uid": { ".validate": "newData.isString()" },
+        "name": { ".validate": "newData.isString()" },
+        "manual": { ".validate": "newData.isBoolean()" },
+        "items": { "$id": { ".validate": "newData.isNumber()" } },
+        "$other": { ".validate": false }
+      }
+    },
+    "meta": {
+      "paid": { ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'" }
+    },
+    "$other": { ".validate": false }
+  }
+}

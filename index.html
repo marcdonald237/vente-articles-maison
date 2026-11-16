@@ -281,6 +281,7 @@ footer p+p{margin-top:6px}
     <p>Seuls les articles listés sont à vendre : la décoration, les chaussures et les autres objets visibles en arrière-plan des photos ne sont pas inclus.</p>
     <p>Une question ? <a href="https://wa.me/237699945970" target="_blank" rel="noopener">Écris au vendeur sur WhatsApp</a>.</p>
     <p id="liveNote"></p>
+    <p><a href="#" id="adminLink" class="hidden" data-act="adminlogin">Espace vendeur</a></p>
   </footer>
 </main>
 
@@ -301,6 +302,98 @@ footer p+p{margin-top:6px}
 </div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script>
+/* ───────── Base partagée (Firebase Realtime Database, via REST) ─────────
+   Renseigne dbUrl et apiKey ci-dessous pour activer les choix partagés hors de Claude. */
+window.VM_FB=window.VM_FB||{dbUrl:'',apiKey:'',adminEmail:'vendeur@vente-maison.app'};
+(function(){
+const FB=window.VM_FB;
+if(typeof claude!=='undefined'||!FB.dbUrl||!FB.apiKey)return;
+window.VM_isShim=true;
+const base=FB.dbUrl.replace(/\/+$/,'');
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let uid=ls.get('vm_uid');
+if(!uid||uid.length<12){
+  const r=new Uint8Array(14);
+  try{crypto.getRandomValues(r)}catch(e){for(let i=0;i<r.length;i++)r[i]=Math.floor(Math.random()*256)}
+  uid='u'+Array.from(r,b=>(b%36).toString(36)).join('');ls.set('vm_uid',uid);
+}
+/* Authentification vendeur (e-mail technique + mot de passe) */
+let token=null,tokenExp=0,refresh=ls.get('vm_rt');
+function setTok(t,rt,exp){token=t;tokenExp=Date.now()+Math.max(60,exp-120)*1000;refresh=rt;ls.set('vm_rt',rt)}
+async function signIn(pw){
+  try{
+    const r=await fetch((FB.authUrl||'https://identitytoolkit.googleapis.com')+'/v1/accounts:signInWithPassword?key='+encodeURIComponent(FB.apiKey),
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:FB.adminEmail,password:pw,returnSecureToken:true})});
+    if(!r.ok)return false;
+    const j=await r.json();setTok(j.idToken,j.refreshToken,+j.expiresIn||3600);return true;
+  }catch(e){return false}
+}
+async function getTok(){
+  if(!refresh)return null;
+  if(token&&Date.now()<tokenExp)return token;
+  try{
+    const r=await fetch((FB.tokenUrl||'https://securetoken.googleapis.com')+'/v1/token?key='+encodeURIComponent(FB.apiKey),
+      {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(refresh)});
+    if(r.status>=400&&r.status<500){refresh=null;token=null;ls.del('vm_rt');return null}
+    if(!r.ok)return token;
+    const j=await r.json();setTok(j.id_token,j.refresh_token,+j.expires_in||3600);return token;
+  }catch(e){return token}
+}
+window.VM_adminLogin=signIn;
+/* Données + synchronisation par interrogation régulière */
+const cache={claims:{},paid:null};
+const subs=[];let pending=0,timer=null;
+const snapC=()=>({docs:Object.entries(cache.claims).map(([id,v])=>({id,data:()=>v})),metadata:{fromCache:false}});
+const snapP=()=>({exists:!!cache.paid,data:()=>cache.paid,metadata:{fromCache:false}});
+function emit(){subs.forEach(s=>s.cb(s.kind==='c'?snapC():snapP()))}
+async function poll(){
+  if(pending||!subs.length)return;
+  try{
+    const r=await fetch(base+'/.json',{cache:'no-store'});
+    if(!r.ok)throw new Error('http '+r.status);
+    const j=(await r.json())||{};
+    if(pending)return;
+    cache.claims=j.claims||{};cache.paid=(j.meta&&j.meta.paid)||null;
+    emit();
+  }catch(e){subs.forEach(s=>s.err&&s.err(e))}
+}
+function start(){
+  if(timer)return;
+  timer=setInterval(()=>{if(!document.hidden)poll()},3500);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
+  poll();
+}
+function applyLocal(path,obj){
+  if(path==='meta/paid')cache.paid=(obj&&obj.ids&&Object.keys(obj.ids).length)?obj:null;
+  else if(path.startsWith('claims/')){
+    const o={...obj};if(o.items&&!Object.keys(o.items).length)delete o.items;
+    cache.claims={...cache.claims,[path.slice(7)]:o};
+  }
+  emit();
+}
+async function put(path,obj){
+  pending++;
+  try{
+    for(let a=0;a<2;a++){
+      const t=await getTok();
+      const r=await fetch(base+'/'+path+'.json'+(t?'?auth='+encodeURIComponent(t):''),
+        {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      if(r.ok){applyLocal(path,obj);return}
+      if((r.status===401||r.status===403)&&t&&a===0){token=null;tokenExp=0;continue}
+      const e=new Error('http '+r.status);e.code=(r.status===401||r.status===403)?'not_granted':'unavailable';throw e;
+    }
+  }finally{pending--;setTimeout(poll,0)}
+}
+function sub(kind,cb,err){subs.push({kind,cb,err});start()}
+const db={
+  doc:p=>({set:o=>put(p,o),onSnapshot:(cb,err)=>sub('p',cb,err)}),
+  collection:()=>({onSnapshot:(cb,err)=>sub('c',cb,err)})
+};
+const user={id:async()=>uid,canEdit:async()=>!!(await getTok()),can:async()=>true};
+window.claude={use:async n=>n==='db'?db:n==='user'?user:null};
+})();
+</script>
 <script>
 "use strict";
 /* ───────── Catalogue ───────── */
@@ -668,6 +761,7 @@ function render(){
   const adm=S.canEdit&&!!S.db;
   renderStats();renderNotice();
   $('#sellerBtn').classList.toggle('hidden',!adm);
+  $('#adminLink').classList.toggle('hidden',!(window.VM_isShim&&S.db&&!S.canEdit));
   $('#addPersonBtn').classList.toggle('hidden',!(adm&&S.seller));
   $('#addbar').classList.toggle('hidden',!(adm&&S.seller));
   renderGrid();renderPeople();renderSelBar();renderSheet();renderSelBar();
@@ -680,12 +774,12 @@ function ask(o){
     askResolve=res;
     $('#askTitle').textContent=o.title;$('#askHint').textContent=o.hint||'';
     $('#askLabel').textContent=o.label;$('#askCta').textContent=o.cta||'Valider';
-    const inp=$('#askInput');inp.value=o.value||'';
+    const inp=$('#askInput');inp.type=o.type||'text';inp.maxLength=o.max||30;inp.autocomplete=o.type==='password'?'current-password':'given-name';inp.value=o.value||'';
     $('#ask').hidden=false;setTimeout(()=>inp.focus(),30);
   });
 }
 function askClose(v){$('#ask').hidden=true;const r=askResolve;askResolve=null;if(r)r(v)}
-$('#askForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#askInput').value.trim().slice(0,30);if(v)askClose(v)});
+$('#askForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#askInput').value.trim().slice(0,$('#askInput').maxLength||30);if(v)askClose(v)});
 
 /* ───────── Events ───────── */
 document.addEventListener('click',async e=>{
@@ -715,6 +809,13 @@ document.addEventListener('click',async e=>{
     case 'addperson':S.sheet={type:'add',name:'',pre:[]};$('#sheet').dataset.kind='';render();break;
     case 'addp':S.sheet={type:'add',name:'',pre:[id]};$('#sheet').dataset.kind='';render();break;
     case 'addto':S.sheet={type:'add',name:t.dataset.name||'',pre:[]};$('#sheet').dataset.kind='';render();break;
+    case 'adminlogin':{e.preventDefault();
+      const pw=await ask({title:'Espace vendeur',hint:'Réservé au vendeur : pour marquer les paiements et ajouter des personnes.',label:'Mot de passe',cta:'Entrer',type:'password',max:60});
+      if(!pw)break;
+      const ok=await window.VM_adminLogin(pw);
+      if(ok){S.canEdit=true;render();toast('Mode vendeur disponible : touche « Mode vendeur » en haut.')}
+      else toast('Mot de passe incorrect.');
+      break}
     case 'askCancel':askClose(null);break;
     case 'rename':{const v=await ask({title:'Ton nom',hint:'',label:'Prénom ou nom',cta:'Enregistrer',value:S.name});if(v){S.name=v;store.set('vm_name',v);
       if(writable()&&S.docs.get(S.uid))enqueue(async()=>{const cur=S.docs.get(S.uid);await S.db.doc('claims/'+S.uid).set({uid:S.uid,name:v,items:cur.items})});
