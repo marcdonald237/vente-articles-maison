@@ -5,20 +5,36 @@
       "$uid": {
         ".write": "auth != null && (auth.token.email === 'vendeur@vente-maison.app' || (!$uid.matches(/^m_/) && auth.uid === $uid && !root.child('blocked').child(auth.uid).exists()))",
         ".validate": "newData.child('name').isString() && newData.child('name').val().length <= 30",
-        "uid": { ".validate": "newData.isString()" },
-        "name": { ".validate": "newData.isString()" },
-        "manual": { ".validate": "newData.isBoolean()" },
-        "items": { "$id": { ".validate": "newData.isNumber()" } },
-        "$other": { ".validate": false }
+        "uid": {
+          ".validate": "newData.isString()"
+        },
+        "name": {
+          ".validate": "newData.isString()"
+        },
+        "manual": {
+          ".validate": "newData.isBoolean()"
+        },
+        "items": {
+          "$id": {
+            ".validate": "newData.isNumber()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "meta": {
       ".read": "auth != null && !root.child('blocked').child(auth.uid).exists()",
-      "paid": { ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'" }
+      "paid": {
+        ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'"
+      }
     },
     "items": {
       ".read": "auth != null && !root.child('blocked').child(auth.uid).exists()",
-      "$id": { ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'" }
+      "$id": {
+        ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'"
+      }
     },
     "photos": {
       "$k": {
@@ -33,12 +49,24 @@
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && (auth.token.email === 'vendeur@vente-maison.app' || (auth.uid === $uid && !root.child('blocked').child(auth.uid).exists()))",
         ".validate": "newData.child('last').isNumber()",
-        "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
-        "first": { ".validate": "newData.isNumber()" },
-        "last": { ".validate": "newData.isNumber()" },
-        "n": { ".validate": "newData.isNumber()" },
-        "ua": { ".validate": "newData.isString() && newData.val().length <= 80" },
-        "$other": { ".validate": false }
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "first": {
+          ".validate": "newData.isNumber()"
+        },
+        "last": {
+          ".validate": "newData.isNumber()"
+        },
+        "n": {
+          ".validate": "newData.isNumber()"
+        },
+        "ua": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "blocked": {
@@ -48,6 +76,42 @@
         ".write": "auth != null && auth.token.email === 'vendeur@vente-maison.app'"
       }
     },
-    "$other": { ".validate": false }
+    "$other": {
+      ".validate": false
+    },
+    "payments": {
+      ".read": "auth != null && auth.token.email === 'vendeur@vente-maison.app'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$pid": {
+          ".write": "auth != null && (auth.token.email === 'vendeur@vente-maison.app' || (auth.uid === $uid && !data.exists() && !root.child('blocked').child(auth.uid).exists() && newData.child('status').val() === 'pending'))",
+          ".validate": "newData.hasChildren(['name','its','amount','op','tx','ts','status'])",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 30"
+          },
+          "its": {
+            ".validate": "newData.isString() && newData.val().length <= 600"
+          },
+          "amount": {
+            ".validate": "newData.isNumber()"
+          },
+          "op": {
+            ".validate": "newData.val() === 'om' || newData.val() === 'momo'"
+          },
+          "tx": {
+            ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 40"
+          },
+          "ts": {
+            ".validate": "newData.isNumber()"
+          },
+          "status": {
+            ".validate": "newData.val() === 'pending' || newData.val() === 'confirmed' || newData.val() === 'rejected'"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
   }
 }

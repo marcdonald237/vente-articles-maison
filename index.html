@@ -253,6 +253,19 @@ select.t:focus,textarea.t:focus{outline:0;border-color:var(--accent);box-shadow:
 #blockedOv{position:fixed;inset:0;z-index:40;background:#000;color:#fff;display:grid;place-items:center;text-align:center;padding:30px}
 #blockedOv h2{color:var(--accent);font-size:26px;margin-bottom:8px}
 @media(max-width:480px){.tab{padding:9px 9px;font-size:14px}.tabs{gap:0}}
+.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{white-space:nowrap;flex:none}
+.paybox{border:1.5px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;margin-top:6px}
+.paybox h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-d)}
+.opseg{display:flex;gap:6px;background:#eee;border-radius:12px;padding:4px}
+.opseg button{flex:1;padding:10px 6px;border-radius:9px;font-weight:700;font-size:14px;color:#595959}
+.opseg button[aria-pressed=true]{background:#000;color:#fff}
+.paynum{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:12px 14px}
+.paynum div{display:grid;gap:2px}.paynum b{font-size:20px;letter-spacing:.01em}.paynum small{color:var(--muted);font-size:12.5px}
+.payhist{display:grid;gap:6px;margin-top:10px;font-size:14px}
+.prow{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--bg);border-radius:10px;padding:8px 12px}
+.pst{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pst.wait{background:#fff0e0;color:#8a4200}.pst.ok{background:#e3f4e7;color:#1a7f37}.pst.no{background:#fde7ea;color:#b00020}
+.vact{display:grid;gap:6px}
 .hidden{display:none!important}
 </style>
 </head>
@@ -281,6 +294,7 @@ select.t:focus,textarea.t:focus{outline:0;border-color:var(--accent);box-shadow:
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="catalogue" aria-selected="true">Catalogue</button>
       <button class="tab" role="tab" data-tab="people" aria-selected="false">Qui a choisi quoi<span class="count hidden" id="peopleCount">0</span></button>
+      <button class="tab hidden" id="payTab" role="tab" data-tab="payments" aria-selected="false">Paiements<span class="count hidden" id="payCount">0</span></button>
       <button class="tab hidden" id="visTab" role="tab" data-tab="visitors" aria-selected="false">Visiteurs<span class="count hidden" id="visCount">0</span></button>
     </div>
     <div class="tools" id="tools">
@@ -301,6 +315,7 @@ select.t:focus,textarea.t:focus{outline:0;border-color:var(--accent);box-shadow:
 <main class="wrap">
   <section id="catalogue"><div class="grid" id="grid"></div></section>
   <section id="people" class="hidden"><div class="addbar hidden" id="addbar"><button class="seller-toggle" data-act="addperson">＋ Ajouter une personne</button></div><div class="people" id="peopleList"></div></section>
+  <section id="payments" class="hidden"><div class="vlist" id="payList"></div></section>
   <section id="visitors" class="hidden"><div class="vlist" id="visList"></div></section>
   <footer>
     <p>Prix en FCFA. Plusieurs personnes peuvent choisir le même article ; il devient indisponible dès que la première personne a payé.</p>
@@ -391,11 +406,11 @@ async function signIn(pw){
 window.VM_adminLogin=signIn;
 /* Données + synchronisation par interrogation régulière */
 const url=(p,t)=>base+'/'+p+'.json'+(t?'?auth='+encodeURIComponent(t):'');
-const cache={claims:{},paid:null,items:{},visitors:{},blocked:{},me:null};
+const cache={claims:{},paid:null,items:{},visitors:{},blocked:{},me:null,payments:{}};
 const subs=[];let pending=0,timer=null,filled=false;
 const snapOf=k=>k==='c'?{docs:Object.entries(cache.claims).map(([id,v])=>({id,data:()=>v})),metadata:{fromCache:false}}
   :k==='p'?{exists:!!cache.paid,data:()=>cache.paid,metadata:{fromCache:false}}
-  :k==='items'?cache.items:k==='visitors'?cache.visitors:k==='blocked'?cache.blocked:cache.me;
+  :k==='items'?cache.items:k==='visitors'?cache.visitors:k==='blocked'?cache.blocked:k==='payments'?cache.payments:cache.me;
 function emit(kinds){subs.forEach(s=>{if(!kinds||kinds.includes(s.kind))s.cb(snapOf(s.kind))})}
 async function getJson(p){
   const t=await anyTok();
@@ -416,9 +431,9 @@ async function poll(){
       if(!r.ok)throw new Error('http '+r.status);
       return{v:await r.json()};
     };
-    const reqs=[get('claims'),get('meta'),get('items'),uid?get('blocked/'+uid):Promise.resolve({v:null})];
+    const reqs=[get('claims'),get('meta'),get('items'),uid?get('blocked/'+uid):Promise.resolve({v:null}),adm?get('payments'):(uid?get('payments/'+uid):Promise.resolve({v:null}))];
     if(adm)reqs.push(get('visitors'),get('blocked'));
-    const [c,m,it,me,vs,bl]=await Promise.all(reqs);
+    const [c,m,it,me,py,vs,bl]=await Promise.all(reqs);
     if(pending)return;
     cache.me=(me&&me.v)||null;
     if(c.denied||m.denied||it.denied){
@@ -427,6 +442,7 @@ async function poll(){
     }else{
       cache.claims=c.v||{};cache.paid=(m.v&&m.v.paid)||null;cache.items=it.v||{};
     }
+    cache.payments=adm?((py&&py.v)||{}):((py&&py.v)?{[uid]:py.v}:{});
     if(adm){cache.visitors=(vs&&vs.v)||{};cache.blocked=(bl&&bl.v)||{}}
     filled=true;emit();
   }catch(e){subs.forEach(s=>s.err&&s.err(e))}
@@ -447,6 +463,7 @@ function applyLocal(path,obj){
     cache.paid=(obj&&obj.ids&&Object.keys(obj.ids).length)?obj:null;emit(['p']);
   }else if(p[0]==='items'&&p[1]){setIn('items',p[1],obj);emit(['items'])}
   else if(p[0]==='blocked'&&p[1]){setIn('blocked',p[1],obj);emit(['blocked'])}
+  else if(p[0]==='payments'&&p.length===3){const m={...(cache.payments[p[1]]||{})};if(obj===null||obj===undefined)delete m[p[2]];else m[p[2]]=obj;cache.payments={...cache.payments,[p[1]]:m};emit(['payments'])}
   else if(p[0]==='visitors'&&p[1]){setIn('visitors',p[1],obj);emit(['visitors'])}
 }
 async function put(path,obj){
@@ -527,6 +544,7 @@ const BASE_ITEMS=[
   {id:'verres-shot',name:'6 verres à shot',price:3000,cat:'cuisine',photos:['verres-shot']}
 ];
 const SELLER_WA='237699945970';
+const PAY={om:{label:'Orange Money',num:'237699945970',disp:'+237 6 99 94 59 70'},momo:{label:'MTN MoMo',num:'237678235868',disp:'+237 6 78 23 58 68'},holder:'Marc Donald NGUEKENG'};
 const ITEMS=[],BY={};
 function mergeOv(i,o){
   if(typeof o.name==='string'&&o.name.trim())i.name=o.name.slice(0,60);
@@ -598,7 +616,7 @@ const S={
   docs:new Map(),raw:new Map(),ch:{},paid:{},
   local:new Set((()=>{try{return JSON.parse(store.get('vm_local')||'[]').filter(i=>BY[i])}catch(e){return[]}})()),
   live:false,liveErr:false,sheet:null,
-  visitors:{},blockedMap:{},blockedMe:false,vrec:null,itemsRaw:{},confirmBlock:null,reapply:null
+  visitors:{},blockedMap:{},blockedMe:false,payments:{},pay:{op:'om',tx:''},vrec:null,itemsRaw:{},confirmBlock:null,reapply:null
 };
 function recompute(){
   const ch={};
@@ -620,7 +638,18 @@ function stateOf(id){
   return {k,list,p,mine};
 }
 const mySel=()=>ITEMS.filter(i=>{const s=stateOf(i.id);return s.mine&&s.k!=='sold'}).map(i=>i.id);
-const mySold=()=>ITEMS.filter(i=>{const s=stateOf(i.id);return s.mine&&s.k==='sold'}).map(i=>i.id);
+const mySold=()=>ITEMS.filter(i=>{const s=stateOf(i.id);return s.mine&&s.k==='sold'&&!(S.uid&&s.p&&s.p.by===S.uid)}).map(i=>i.id);
+const myPaid=()=>ITEMS.filter(i=>{const s=stateOf(i.id);return s.k==='sold'&&S.uid&&s.p&&s.p.by===S.uid}).map(i=>i.id);
+function payList(){
+  const out=[];
+  for(const [uid,m] of Object.entries(S.payments||{}))for(const [pid,p] of Object.entries(m||{}))if(p&&typeof p==='object')out.push({uid,pid,...p});
+  return out.sort((a,b)=>(b.ts||0)-(a.ts||0));
+}
+const myPays=()=>payList().filter(p=>p.uid===S.uid);
+function todoIds(){
+  const pend=new Set(myPays().filter(p=>p.status==='pending').flatMap(p=>String(p.its||'').split(',')));
+  return mySel().filter(id=>!pend.has(id));
+}
 
 /* ───────── Writes (queued, one at a time) ───────── */
 let queue=Promise.resolve();
@@ -782,6 +811,61 @@ function renderVisitors(){
   }).join(''):'<div class="empty">Aucun visiteur enregistré pour l’instant.</div>';
 }
 setInterval(()=>{if(!document.hidden&&S.tab==='visitors')renderVisitors()},30000);
+
+/* ───────── Paiements Mobile Money (déclaration + confirmation) ───────── */
+async function declarePay(){
+  const todo=todoIds();
+  if(!todo.length){toast('Rien à payer pour le moment.');return}
+  const tx=String(S.pay.tx||'').trim();
+  if(tx.length<4){toast('Indique l’identifiant de transaction reçu par SMS.');return}
+  if(!S.name){const n=await ensureName();if(!n)return}
+  const op=PAY[S.pay.op]?S.pay.op:'om';
+  const amount=todo.reduce((t,id)=>t+BY[id].price,0);
+  const rec={name:S.name.slice(0,30),its:todo.join(','),amount,op,tx:tx.slice(0,40),ts:Date.now(),status:'pending'};
+  const pid='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  let ok=false;
+  await enqueue(async()=>{await S.db.doc('payments/'+S.uid+'/'+pid).set(rec);ok=true});
+  if(!ok)return;
+  S.pay.tx='';render();
+  toast('Paiement déclaré : le vendeur va le confirmer.');
+  notify('paiement déclaré',[`${rec.name} déclare avoir payé ${money(amount)} par ${PAY[op].label}.`,`Identifiant de transaction : ${rec.tx}`,`Articles : ${todo.map(id=>BY[id].name).join(', ')}`,'À confirmer dans le site : Espace vendeur > Paiements.']);
+}
+async function payConfirm(uid,pid){
+  const p=((S.payments||{})[uid]||{})[pid];if(!p||p.status!=='pending')return;
+  const doc=S.docs.get(uid);const name=(doc&&doc.name)||p.name||'Quelqu’un';
+  const paid={...S.paid};const taken=[];let any=false;
+  for(const id of String(p.its||'').split(',').filter(id=>BY[id])){
+    if(paid[id])taken.push(BY[id].name);else{paid[id]={by:uid,name};any=true}
+  }
+  let ok=false;
+  await enqueue(async()=>{
+    if(any)await S.db.doc('meta/paid').set({ids:paid});
+    await S.db.doc('payments/'+uid+'/'+pid).set({...p,status:'confirmed'});ok=true;
+  });
+  if(!ok)return;
+  toast(taken.length?`Confirmé, mais déjà payé par un autre : ${taken.join(', ')}. Pense à rembourser.`:`Paiement de ${name} confirmé : articles vendus.`);
+}
+async function payReject(uid,pid){
+  const p=((S.payments||{})[uid]||{})[pid];if(!p||p.status!=='pending')return;
+  await enqueue(()=>S.db.doc('payments/'+uid+'/'+pid).set({...p,status:'rejected'}));
+  toast('Paiement refusé.');
+}
+function renderPayments(){
+  const adm=SHIM()&&S.canEdit&&!!S.db;
+  const list=payList();const pend=list.filter(p=>p.status==='pending');
+  $('#payCount').textContent=pend.length;$('#payCount').classList.toggle('hidden',!pend.length);
+  if(!adm||S.tab!=='payments')return;
+  $('#payList').innerHTML=list.length?list.map(p=>{
+    const items=String(p.its||'').split(',').filter(id=>BY[id]).map(id=>BY[id].name);
+    const st=PSTAT[p.status]||PSTAT.pending;
+    return `<div class="vrow${p.status==='pending'?'':' blk'}" style="${p.status==='confirmed'?'border-left-color:#1a7f37':''}"><div class="vinfo">
+      <div class="vhead"><b>${esc(p.name||'?')}</b><span class="pst ${st[1]}">${st[0]}</span></div>
+      <small>${money(p.amount||0)} · ${esc((PAY[p.op]||{}).label||'')} · ${ago(p.ts||0)}</small>
+      <small>Identifiant : <b>${esc(p.tx||'')}</b></small>
+      <small>${esc(items.join(', ')||'—')}</small></div>
+      ${p.status==='pending'?`<div class="vact"><button class="mini fill" data-act="payok" data-uid="${esc(p.uid)}" data-pid="${esc(p.pid)}">Confirmer</button><button class="mini danger" data-act="payno" data-uid="${esc(p.uid)}" data-pid="${esc(p.pid)}">Refuser</button></div>`:''}</div>`;
+  }).join(''):'<div class="empty">Aucun paiement déclaré pour l’instant.</div>';
+}
 
 /* ───────── Modifier les articles (vendeur) ───────── */
 function openEdit(id){
@@ -987,7 +1071,8 @@ function sheetItem(id){
   let status,action='';
   if(s.k==='sold'){
     status=`<div class="status taken">Indisponible · vendu à ${esc(s.p.name)}</div>`;
-    if(s.mine)status+='<p class="sub">Tu avais choisi cet article, mais il a déjà été payé par quelqu’un d’autre.</p>';
+    if(s.mine&&S.uid&&s.p.by===S.uid)status='<div class="status mine">✓ Payé : cet article est à toi</div>';
+    else if(s.mine)status+='<p class="sub">Tu avais choisi cet article, mais il a déjà été payé par quelqu’un d’autre.</p>';
   }else if(s.k==='mine'){
     status='<div class="status mine">✓ Tu as choisi cet article</div>';
     action=`<button class="btn ghost" data-act="drop" data-id="${id}">${writable()?'Retirer mon choix':'Retirer de ma sélection'}</button>`;
@@ -1014,6 +1099,23 @@ function sheetItem(id){
     ${i.note?`<p class="sub">${esc(i.note)}</p>`:''}
     ${status}${who}${rule}${action}${seller}</div>`;
 }
+const PSTAT={pending:['En attente de confirmation','wait'],confirmed:['Confirmé ✓','ok'],rejected:['Refusé','no']};
+function payBlock(ids){
+  if(!SHIM()||!writable())return '';
+  const mine=myPays();
+  const hist=mine.length?`<div class="payhist"><b>Tes paiements déclarés</b>${mine.slice(0,5).map(p=>{const st=PSTAT[p.status]||PSTAT.pending;return `<div class="prow"><span>${money(p.amount||0)} · ${esc((PAY[p.op]||{}).label||'')}<small class="sub"> · ${ago(p.ts||0)}</small></span><span class="pst ${st[1]}">${st[0]}</span></div>`}).join('')}</div>`:'';
+  if(!ids.length)return hist;
+  const todo=todoIds();
+  if(!todo.length)return `<div class="paybox"><h3>Paiement</h3><p class="sub">Ton paiement est déclaré : le vendeur le confirme dès qu’il l’a reçu.</p></div>${hist}`;
+  const op=PAY[S.pay.op]?S.pay.op:'om',P=PAY[op];
+  const amount=todo.reduce((t,id)=>t+BY[id].price,0);
+  return `<div class="paybox"><h3>Payer par Mobile Money</h3>
+    <p class="sub">Envoie <b>${money(amount)}</b> au numéro de ton choix, puis touche « J’ai payé ».</p>
+    <div class="opseg"><button type="button" data-act="payop" data-op="om" aria-pressed="${op==='om'}">Orange Money</button><button type="button" data-act="payop" data-op="momo" aria-pressed="${op==='momo'}">MTN MoMo</button></div>
+    <div class="paynum"><div><small>${P.label}</small><b>${P.disp}</b><small>Au nom de ${PAY.holder}</small></div><button type="button" class="mini" data-act="copynum">Copier</button></div>
+    <label class="f">Identifiant de transaction (reçu par SMS)<input class="t" id="payTx" data-pf="tx" maxlength="40" autocomplete="off" placeholder="ex. MP240101.1234.A12345" value="${esc(S.pay.tx||'')}"></label>
+    <button type="button" class="btn" data-act="paydeclare">J’ai payé ${money(amount)}</button></div>${hist}`;
+}
 function sheetSel(){
   const ids=mySel(),lost=mySold();const tot=ids.reduce((s,id)=>s+BY[id].price,0);
   return `<button class="sclose" data-act="close" aria-label="Fermer">×</button>
@@ -1025,6 +1127,8 @@ function sheetSel(){
   <a class="btn wa" href="https://wa.me/${SELLER_WA}?text=${encodeURIComponent(selMessage())}" target="_blank" rel="noopener">Envoyer au vendeur sur <b>WhatsApp</b></a>
   <button class="btn ghost" data-act="copy">Copier le message</button>`
   :'<p class="sub">Tu n’as pas encore choisi d’article disponible.</p>'}
+  ${payBlock(ids)}
+  ${myPaid().length?`<p class="sub"><b>Payés ✓ :</b> ${myPaid().map(id=>esc(BY[id].name)).join(', ')}.</p>`:''}
   ${lost.length?`<p class="sub"><b>Plus disponibles :</b> ${lost.map(id=>esc(BY[id].name)).join(', ')} (déjà payés par d’autres).</p>`:''}
   <button class="btn line" data-act="rename">${S.name?`Changer mon nom (${esc(S.name)})`:'Ajouter mon nom au message'}</button></div>`;
 }
@@ -1044,6 +1148,7 @@ function renderSheet(){
   const bd=$('#backdrop'),sh=$('#sheet');
   if(!S.sheet){bd.hidden=true;sh.dataset.kind='';return}
   if((S.sheet.type==='add'||S.sheet.type==='edit')&&sh.dataset.kind===S.sheet.type&&!bd.hidden)return; /* keep typing state */
+  if(S.sheet.type==='sel'&&sh.dataset.kind==='sel'&&!bd.hidden&&document.activeElement&&sh.contains(document.activeElement)&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;
   const keep=sh.scrollTop;
   sh.innerHTML=S.sheet.type==='item'?sheetItem(S.sheet.id):S.sheet.type==='add'?sheetAdd():S.sheet.type==='edit'?sheetEdit():sheetSel();
   sh.dataset.kind=S.sheet.type;bd.hidden=false;sh.scrollTop=keep;
@@ -1061,7 +1166,7 @@ function render(){
   $('#visTab').classList.toggle('hidden',!(SHIM()&&adm));
   $('#privNote').hidden=!SHIM();
   $('#blockedOv').classList.toggle('hidden',!S.blockedMe);
-  renderVisitors();
+  renderVisitors();$('#payTab').classList.toggle('hidden',!(SHIM()&&adm));renderPayments();
   $('#addbar').classList.toggle('hidden',!(adm&&S.seller));
   renderGrid();renderPeople();renderSelBar();renderSheet();renderSelBar();
 }
@@ -1091,8 +1196,10 @@ document.addEventListener('click',async e=>{
     $('#catalogue').classList.toggle('hidden',S.tab!=='catalogue');
     $('#people').classList.toggle('hidden',S.tab!=='people');
     $('#visitors').classList.toggle('hidden',S.tab!=='visitors');
+    $('#payments').classList.toggle('hidden',S.tab!=='payments');
     $('#tools').classList.toggle('hidden',S.tab!=='catalogue');
     if(S.tab==='visitors')renderVisitors();
+    if(S.tab==='payments')renderPayments();
     const sec=$('#'+S.tab);sec.classList.remove('enter');void sec.offsetWidth;sec.classList.add('enter');
     window.scrollTo({top:0});return}
   if(t.dataset.cat){S.cat=t.dataset.cat;renderChips();renderGrid(true);return}
@@ -1127,6 +1234,11 @@ document.addEventListener('click',async e=>{
       else{S.confirmBlock=null;await setBlocked(u,true)}
       break}
     case 'unblock':await setBlocked(t.dataset.uid,false);break;
+    case 'payop':S.pay.op=t.dataset.op;render();break;
+    case 'copynum':{const P=PAY[S.pay.op]||PAY.om;try{await navigator.clipboard.writeText(P.num.replace(/^237/,'+237'));toast('Numéro copié.')}catch(err){toast(P.disp)}break}
+    case 'paydeclare':await declarePay();break;
+    case 'payok':await payConfirm(t.dataset.uid,t.dataset.pid);break;
+    case 'payno':await payReject(t.dataset.uid,t.dataset.pid);break;
     case 'askCancel':askClose(null);break;
     case 'rename':{const v=await ask({title:'Ton nom',hint:'',label:'Prénom ou nom',cta:'Enregistrer',value:S.name});if(v){S.name=v;store.set('vm_name',v);
       if(writable()&&S.docs.get(S.uid))enqueue(async()=>{const cur=S.docs.get(S.uid);await S.db.doc('claims/'+S.uid).set({uid:S.uid,name:v,items:cur.items})});
@@ -1141,6 +1253,7 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{
   const f=e.target&&e.target.dataset&&e.target.dataset.f;
   if(f&&S.sheet&&S.sheet.type==='edit')S.sheet.draft[f]=e.target.value;
+  if(e.target&&e.target.dataset&&e.target.dataset.pf)S.pay[e.target.dataset.pf]=e.target.value;
 });
 document.addEventListener('change',e=>{
   if(e.target&&e.target.id==='edFile'){const fs=[...e.target.files];e.target.value='';addPhotos(fs)}
@@ -1273,6 +1386,7 @@ async function init(){
     db.watch('me',m=>{const b=!!m;if(b!==S.blockedMe){S.blockedMe=b;render()}});
     db.watch('visitors',v=>{S.visitors=v||{};renderVisitors()});
     db.watch('blocked',b=>{S.blockedMap=b||{};renderVisitors()});
+    db.watch('payments',p=>{S.payments=p||{};render()});
   }
   db.collection('claims').onSnapshot(snap=>{
     lastSnap=snap;readDocs(snap);recompute();
