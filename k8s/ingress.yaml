@@ -1,0 +1,16 @@
+# Optionnel : à utiliser si le cluster a un Ingress Controller (nginx, traefik…).
+# Remplace le host par ton nom de domaine, ou supprime « host » pour répondre à toutes les adresses.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vente-maison
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vente-maison
+                port: {number: 80}
