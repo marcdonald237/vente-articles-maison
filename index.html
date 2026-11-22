@@ -670,7 +670,7 @@ function onWriteError(e){
 }
 async function ensureName(){
   if(S.name)return S.name;
-  const v=await ask({title:'Ton nom',hint:'Il sera visible par tous à côté des articles que tu choisis.',label:'Prénom ou nom',cta:'Continuer'});
+  const v=await ask({title:'Ton nom',hint:'Il sera joint au message envoyé au vendeur.',label:'Prénom ou nom',cta:'Continuer'});
   if(!v)return '';
   S.name=v;store.set('vm_name',v);saveVisitor();return v;
 }
@@ -988,7 +988,7 @@ function cardHtml(i){
   if(s.k==='sold')btn='<button class="cbtn" disabled>Indisponible</button>';
   else if(s.k==='mine')btn=`<button class="cbtn mine" data-act="drop" data-id="${i.id}">${writable()?'Retirer mon choix':'Dans ma sélection ✓'}</button>`;
   else btn=`<button class="cbtn" data-act="pick" data-id="${i.id}">${writable()?(s.k==='chosen'?'Je le choisis aussi':'Je le choisis'):'Ajouter à ma sélection'}</button>`;
-  const who=s.k==='sold'?`Vendu à ${esc(s.p.name)}`:(s.list.length?`Choisi par ${esc(namesLine(s.list))}`:'');
+  const who=!S.canEdit?'':s.k==='sold'?`Vendu à ${esc(s.p.name)}`:(s.list.length?`Choisi par ${esc(namesLine(s.list))}`:'');
   const rv=canAnim&&!seen.has(i.id)?' rv':'';
   return `<article class="card${s.k==='sold'?' taken':''}${rv}" data-id="${i.id}">
     <div class="thumb" data-act="open" data-id="${i.id}" style="cursor:pointer">${photoHtml(i)}${pillOf(s)}</div>
@@ -1075,7 +1075,7 @@ function sheetItem(id){
   const i=BY[id],s=stateOf(id);
   let status,action='';
   if(s.k==='sold'){
-    status=`<div class="status taken">Indisponible · vendu à ${esc(s.p.name)}</div>`;
+    status=`<div class="status taken">Indisponible · ${S.canEdit?'vendu à '+esc(s.p.name):'déjà vendu'}</div>`;
     if(s.mine&&S.uid&&s.p.by===S.uid)status='<div class="status mine">✓ Payé : cet article est à toi</div>';
     else if(s.mine)status+='<p class="sub">Tu avais choisi cet article, mais il a déjà été payé par quelqu’un d’autre.</p>';
   }else if(s.k==='mine'){
@@ -1088,7 +1088,7 @@ function sheetItem(id){
     status='<div class="status free">● Disponible</div>';
     action=`<button class="btn" data-act="pick" data-id="${id}">${writable()?'Je le choisis':'Ajouter à ma sélection'}</button>`;
   }
-  const who=s.list.length?`<p class="sub"><b>Choisi par :</b> ${s.list.map(c=>esc(c.name)).join(', ')}</p>`:'';
+  const who=S.canEdit&&s.list.length?`<p class="sub"><b>Choisi par :</b> ${s.list.map(c=>esc(c.name)).join(', ')}</p>`:'';
   const rule=s.k!=='sold'?'<p class="sub">L’article est attribué à la première personne qui paie.</p>':'';
   let seller='';
   if(S.seller&&S.canEdit){
